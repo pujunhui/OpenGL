@@ -61,7 +61,7 @@ class MainActivity : AppCompatActivity() {
             }
             setCameraType(cameraType)
         }
-        binding.cameraType.check(R.id.camera1_btn)
+        binding.cameraType.check(R.id.camera2_btn)
     }
 
     override fun onStart() {

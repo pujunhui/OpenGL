@@ -36,10 +36,11 @@ import android.opengl.GLES30.glTexParameteri
 import android.opengl.GLUtils
 import android.util.Log
 
+private const val TAG = "OpenGL-TAG"
 fun loadShader(type: Int, shaderSrc: String): Int {
     val shader = glCreateShader(type)
     if (shader == 0) {
-        Log.e("chao", "compile shader == 0")
+        Log.e(TAG, "compile shader == 0")
         return 0
     }
     glShaderSource(shader, shaderSrc)
@@ -48,7 +49,7 @@ fun loadShader(type: Int, shaderSrc: String): Int {
     glGetShaderiv(shader, GL_COMPILE_STATUS, compileStatus, 0)
     if (compileStatus[0] == 0) {
         val log = glGetShaderInfoLog(shader)
-        Log.e("chao", "glGetShaderiv fail $log")
+        Log.e(TAG, "glGetShaderiv fail $log")
         glDeleteShader(shader)
         return 0
     }
@@ -70,7 +71,7 @@ fun linkProgram(vShader: Int, fShader: Int): Int {
     //创建Program
     val program = glCreateProgram()
     if (program == 0) {
-        Log.e("chao", "program == 0")
+        Log.e(TAG, "program == 0")
         return 0
     }
 
@@ -84,7 +85,7 @@ fun linkProgram(vShader: Int, fShader: Int): Int {
     glGetProgramiv(program, GL_LINK_STATUS, linkStatus, 0)
     if (linkStatus[0] == 0) {
         val log = glGetProgramInfoLog(program)
-        Log.e("chao", "linkProgram fail $log")
+        Log.e(TAG, "linkProgram fail $log")
         glDeleteProgram(program)
         return 0
     }

@@ -21,3 +21,36 @@ fun Activity.getDisplayRotation(): Int {
         else -> throw IllegalStateException("rotation is error")
     }
 }
+
+fun calcDisplayRotation(
+    isFrontCamera: Boolean,
+    cameraOrientation: Int,
+    screenRotation: Int
+): Int {
+    var result: Int
+    if (isFrontCamera) {
+        result = (cameraOrientation + screenRotation) % 360
+        result = (360 - result) % 360  // compensate the mirror
+    } else { // back-facing
+        result = (cameraOrientation - screenRotation + 360) % 360
+    }
+    return result
+}
+
+fun calcCameraRotation(
+    isFrontCamera: Boolean,
+    cameraOrientation: Int,
+    phoneRotation: Int
+): Int {
+    return if (isFrontCamera) {
+        (cameraOrientation + phoneRotation) % 360
+    } else { // back-facing camera
+        val landscapeFlip = if (isLandscape(phoneRotation)) 180 else 0
+        (cameraOrientation + phoneRotation + landscapeFlip) % 360
+    }
+}
+
+private fun isLandscape(orientationDegrees: Int): Boolean {
+    return (orientationDegrees == Surface.ROTATION_90 ||
+            orientationDegrees == Surface.ROTATION_270)
+}
