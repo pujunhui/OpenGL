@@ -15,6 +15,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.pujh.camera.databinding.ActivityMainBinding
+import com.pujh.ffmpeg.ExternalStoragePermission
+import com.pujh.ffmpeg.checkExternalStoragePermission
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -25,6 +27,25 @@ class MainActivity : AppCompatActivity() {
     ) { granted ->
         if (granted) {
             setCameraType(cameraType)
+        } else {
+            Toast.makeText(
+                this,
+                "Permissions not granted by the user!",
+                Toast.LENGTH_SHORT
+            ).show()
+            val intent = Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:$packageName")
+            )
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
+    }
+    private val requestPermissionLauncher1 = registerForActivityResult(
+        ExternalStoragePermission()
+    ) { granted ->
+        if (granted) {
+            binding.cameraType.check(R.id.camera1_btn)
         } else {
             Toast.makeText(
                 this,
@@ -61,7 +82,35 @@ class MainActivity : AppCompatActivity() {
             }
             setCameraType(cameraType)
         }
-        binding.cameraType.check(R.id.camera2_btn)
+
+        if (checkExternalStoragePermission()) {
+            binding.cameraType.check(R.id.camera1_btn)
+        } else {
+            requestPermissionLauncher1.launch(null)
+        }
+        binding.cameraType.check(R.id.camera1_btn)
+    }
+
+    private fun setCameraType(cameraType: Int) {
+        this.cameraType = cameraType
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_DENIED
+        ) {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            return
+        }
+
+        val fragment = when (cameraType) {
+            CAMERA_TYPE_CAMERA1 -> Camera1Fragment()
+            CAMERA_TYPE_CAMERA2 -> Camera2Fragment()
+            CAMERA_TYPE_CAMERAX -> CameraXFragment()
+            else -> throw IllegalStateException("error camera type!")
+        }
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.container, fragment)
+            .commit()
     }
 
     override fun onStart() {
@@ -87,28 +136,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "onDestroy")
-    }
-
-    private fun setCameraType(cameraType: Int) {
-        this.cameraType = cameraType
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_DENIED
-        ) {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-            return
-        }
-
-        val fragment = when (cameraType) {
-            CAMERA_TYPE_CAMERA1 -> Camera1Fragment()
-            CAMERA_TYPE_CAMERA2 -> Camera2Fragment()
-            CAMERA_TYPE_CAMERAX -> CameraXFragment()
-            else -> throw IllegalStateException("error camera type!")
-        }
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.container, fragment)
-            .commit()
     }
 
     companion object {

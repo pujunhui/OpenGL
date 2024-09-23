@@ -9,7 +9,6 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.OrientationEventListener
-import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -21,6 +20,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
+import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -38,6 +38,13 @@ class CameraXFragment : Fragment() {
 
     private var imageCapture: ImageCapture? = null
     private var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+//        CameraSelector.Builder().addCameraFilter { cameraInfos ->
+//        cameraInfos.filter { cameraInfo ->
+//            val info = cameraInfo as CameraInfoInternal
+//            info.cameraId == "121"
+//        }
+//    }.build()
     private var preview: Preview? = null
     private var camera: Camera? = null
     private var render: CameraRender? = null

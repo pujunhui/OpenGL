@@ -5,7 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.pujh.opengl.basic.model.StyleShader
+import com.pujh.opengl.basic.model.TextureRenderOrtho
+import com.pujh.opengl.basic.model.TextureRenderOrtho1
 import com.pujh.opengl.databinding.FragmentBasicBinding
 
 /**
@@ -17,7 +18,7 @@ class BasicFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        basicRender = BasicRender(StyleShader(requireContext()))
+        basicRender = BasicRender(TextureRenderOrtho1(requireContext()))
     }
 
     override fun onCreateView(

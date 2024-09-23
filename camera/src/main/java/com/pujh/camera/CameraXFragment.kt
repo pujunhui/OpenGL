@@ -78,7 +78,8 @@ class CameraXFragment : Fragment() {
             }
 
             CameraSelector.DEFAULT_FRONT_CAMERA -> {
-                CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_EXTERNAL)
+                CameraSelector.Builder()
+                    .requireLensFacing(CameraSelector.LENS_FACING_EXTERNAL)
                     .build()
             }
 

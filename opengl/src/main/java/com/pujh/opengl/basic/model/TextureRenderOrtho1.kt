@@ -1,9 +1,9 @@
 package com.pujh.opengl.basic.model
 
-import android.R.attr
 import android.content.Context
 import android.opengl.GLES30
 import android.opengl.Matrix
+import android.util.Log
 import com.pujh.opengl.R
 import com.pujh.opengl.basic.Model
 import com.pujh.opengl.util.createTexture
@@ -14,7 +14,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 
-class TextureRenderOrtho(
+class TextureRenderOrtho1(
     private val context: Context
 ) : Model {
 
@@ -72,11 +72,28 @@ class TextureRenderOrtho(
         texCoordHandle = GLES30.glGetAttribLocation(program, "aTexCoord")
         samplerHandle = GLES30.glGetUniformLocation(program, "uSampler")
 
-        val vertexBuffer = ByteBuffer.allocateDirect(triangleCoords.size * Float.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-            .apply {
-                asFloatBuffer().put(triangleCoords).position(0)
+        val bitmap = context.loadBitmap(R.drawable.image)
+        imageWidth = bitmap.width
+        imageHeight = bitmap.height
+
+        Log.d("PUJH", "$imageWidth x $imageHeight")
+
+        // 计算顶点坐标 (以屏幕中心为中心)
+        val vertices = floatArrayOf(
+            -imageWidth.toFloat(), imageHeight.toFloat(), 0.0f, 0.0f, 0.0f,
+            -imageWidth.toFloat(), -imageHeight.toFloat(), 0.0f, 0.0f, 1.0f,
+            imageWidth.toFloat(), -imageHeight.toFloat(), 0.0f, 1.0f, 1.0f,
+            imageWidth.toFloat(), imageHeight.toFloat(), 0.0f, 1.0f, 0.0f
+        )
+
+        val vertexBuffer = ByteBuffer.allocateDirect(vertices.size * Float.SIZE_BYTES).run {
+            order(ByteOrder.nativeOrder())
+            asFloatBuffer().apply {
+                put(vertices)
+                position(0)
             }
+        }
+
         //创建VBO
         GLES30.glGenBuffers(1, vboIds, 0)
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboIds[0])
@@ -136,9 +153,6 @@ class TextureRenderOrtho(
         //解绑VAO
         GLES30.glBindVertexArray(0)
 
-        val bitmap = context.loadBitmap(R.drawable.image)
-        imageWidth = bitmap.width
-        imageHeight = bitmap.height
         textureId = createTexture(bitmap)
         bitmap.recycle()
     }
@@ -149,33 +163,8 @@ class TextureRenderOrtho(
     override fun sizeChange(width: Int, height: Int) {
         GLES30.glViewport(0, 0, width, height)
 
-//        val imageScale = imageWidth / imageHeight.toFloat()
-//        val windowScale = width / height.toFloat()
-//        val left: Float
-//        val right: Float
-//        val bottom: Float
-//        val top: Float
-//        if (imageScale > windowScale) {
-//            left = -1f
-//            right = 1f
-//            bottom = -imageScale / windowScale
-//            top = imageScale / windowScale
-//        } else if (imageScale < windowScale) {
-//            left = -windowScale / imageScale
-//            right = windowScale / imageScale
-//            bottom = -1f
-//            top = 1f
-//        } else {
-//            left = -1f
-//            right = 1f
-//            bottom = -1f
-//            top = 1f
-//        }
 
-//        val ratio = (right - left) / (bottom - top)
-//        //设置正交矩阵
-//        Matrix.orthoM(translateMatrix, 0, left, right, bottom, top, -1f, 1f)
-        val ratio = attr.width.toFloat() / attr.height
+        val ratio = width.toFloat() / height
 
         // Set up MVP matrices
         val viewMatrix = FloatArray(16)
@@ -183,11 +172,10 @@ class TextureRenderOrtho(
 
         Matrix.setLookAtM(viewMatrix, 0, 0f, 0f, 3f, 0f, 0f, 0f, 0f, 1f, 0f)
         Matrix.orthoM(projectionMatrix, 0, -ratio, ratio, -1f, 1f, -10f, 10f)
-//        Matrix.orthoM(projectionMatrix, 0, left, right, bottom, top, -1f, 1f)
 
         val modelMatrix = FloatArray(16)
         Matrix.setIdentityM(modelMatrix, 0)
-        Matrix.setRotateM(modelMatrix, 0, 0f, 0.0f, 0.0f, 1.0f)
+        Matrix.setRotateM(modelMatrix, 0, 10f, 0.0f, 0.0f, 1.0f)
 
         val mvpMatrix = FloatArray(16)
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0)

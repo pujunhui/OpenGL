@@ -2,6 +2,8 @@ package com.pujh.camera
 
 import android.R.attr
 import android.content.res.Configuration
+import android.graphics.ImageFormat
+import android.graphics.SurfaceTexture
 import android.hardware.Camera
 import android.hardware.Camera.CameraInfo
 import android.media.MediaRecorder
@@ -10,28 +12,44 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
 import android.view.LayoutInflater
 import android.view.OrientationEventListener
-import android.view.SurfaceHolder
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.contentValuesOf
 import androidx.fragment.app.Fragment
 import com.pujh.camera.databinding.FragmentCamera1Binding
+import com.pujh.camera.util.ScaleType
+import com.pujh.camera.util.getCameraMatrix
+import com.pujh.camera.util.getCameraRotate
+import com.pujh.camera.util.getDisplayRotation
+import com.pujh.camera.util.save
+import com.pujh.camera.util.yuvToBitmap
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 class Camera1Fragment : Fragment() {
     private lateinit var binding: FragmentCamera1Binding
 
+    private var camera: Camera? = null
+    private lateinit var textureView: TextureView
+
     private var facing = CameraInfo.CAMERA_FACING_BACK
     private val cameraId: Int
         get() = getCameraId(facing)
+    private var cameraSize: Size = Size(1920, 1080)
+    private var scaleType: ScaleType = ScaleType.CENTER_CROP
 
-    private var width = 1920
-    private var height = 1080
-    private var camera: Camera? = null
+    private val surface: SurfaceTexture?
+        get() = textureView.takeIf { it.isAvailable }?.surfaceTexture
+
+    private val displaySize: Size?
+        get() = textureView.takeIf { it.isAvailable }?.let { Size(it.width, it.height) }
+
 
     private lateinit var mediaRecorder: MediaRecorder
     private var isRecording = false
@@ -63,13 +81,6 @@ class Camera1Fragment : Fragment() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        stopRecord()
-        mediaRecorder.release()
-        stopCamera()
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -79,8 +90,6 @@ class Camera1Fragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        binding.surfaceView.holder.addCallback(callback)
-
         binding.imageCaptureBtn.setOnClickListener {
             takePhoto()
         }
@@ -88,74 +97,122 @@ class Camera1Fragment : Fragment() {
             switchCamera()
         }
         orientationEventListener.enable()
-
-        binding.surfaceView.setOnClickListener {
-
-        }
+        textureView = binding.textureView
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         orientationEventListener.disable()
+        stopRecord()
+        mediaRecorder.release()
+        closeCamera()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (textureView.isAvailable) {
+            reopenCamera()
+        }
+        binding.textureView.surfaceTextureListener = textureListener
+    }
 
-    private val callback = object : SurfaceHolder.Callback {
-        override fun surfaceCreated(holder: SurfaceHolder) {
-            Log.d(TAG, "surfaceCreated")
-            startCamera(cameraId, holder)
+    private val textureListener = object : TextureView.SurfaceTextureListener {
+        override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+            reopenCamera()
         }
 
-        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-            Log.d(TAG, "surfaceChanged width=$width, height=$height")
-            stopCamera()
-            startCamera(cameraId, holder, width, height)
+        override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {
+            reopenCamera()
         }
 
-        override fun surfaceDestroyed(holder: SurfaceHolder) {
-            Log.d(TAG, "surfaceDestroyed")
-            stopCamera()
+        override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean {
+            closeCamera()
+            return true
+        }
+
+        override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
         }
     }
 
-    private fun startCamera(
+    private fun reopenCamera() {
+        closeCamera()
+        val surface = this.surface ?: return
+        val displaySize = this.displaySize ?: return
+        openCamera(cameraId, cameraSize, surface, displaySize, scaleType)
+    }
+
+    private fun openCamera(
         cameraId: Int,
-        holder: SurfaceHolder,
-        width: Int = this.width,
-        height: Int = this.height
+        cameraSize: Size,
+        surface: SurfaceTexture,
+        displaySize: Size,
+        scaleType: ScaleType
     ) {
-        this.width = width
-        this.height = height
-
-        val cameraInfo = CameraInfo()
-        Camera.getCameraInfo(cameraId, cameraInfo)
-
-        val isFrontCamera = cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT
-        val cameraOrientation = cameraInfo.orientation
-        val screenRotation = requireActivity().getDisplayRotation()
-        val phoneRotation = requireActivity().getDisplayRotation()
-
         val camera = Camera.open(cameraId)
-        val previewSizes = camera.parameters.supportedPreviewSizes
-        val pictureSizes = camera.parameters.supportedPictureSizes
 
         val parameters = camera.parameters
-        val cameraRotation = calcCameraRotation(isFrontCamera, cameraOrientation, phoneRotation)
-        parameters.setRotation(cameraRotation)
+        parameters.supportedPreviewFormats.forEach { format ->
+            Log.d(TAG, "preview format = $format")
+        }
+        val dataFormat = ImageFormat.NV21
+        parameters.previewFormat = dataFormat
+        val previewSizes = parameters.supportedPreviewSizes
+        previewSizes.forEach { size ->
+            Log.d(TAG, "preview size = ${size.width}x${size.height}")
+        }
+//        val cameraSize = getOptimalPreviewSize(previewSizes, cameraRotate, displaySize)
+        parameters.setPreviewSize(cameraSize.width, cameraSize.height)
         if (parameters.supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
             parameters.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO
         }
+        if (parameters.isZoomSupported()) {
+            parameters.zoom = 0
+        }
         camera.parameters = parameters
 
-        val displayRotation = calcDisplayRotation(isFrontCamera, cameraOrientation, screenRotation)
-        camera.setDisplayOrientation(displayRotation)
-        camera.setPreviewDisplay(holder)
+        val bufferSize = cameraSize.width * cameraSize.height *
+                ImageFormat.getBitsPerPixel(dataFormat) / 8
+        repeat(2) {
+            camera.addCallbackBuffer(ByteArray(bufferSize))
+        }
+
+        var i = 0
+        camera.setPreviewCallbackWithBuffer { data, camera ->
+            if (i == 10) {
+                val file = File("/sdcard/Camera/")
+                if (!file.exists()) {
+                    file.mkdirs()
+                }
+                val bitmap = yuvToBitmap(
+                    data,
+                    dataFormat,
+                    cameraSize.width,
+                    cameraSize.height
+                )
+                bitmap.save("/sdcard/Camera/${System.currentTimeMillis()}-${cameraSize.width}x${cameraSize.height}.jpg")
+            }
+            i++
+            camera.addCallbackBuffer(data)
+        }
+
+        //一定要设置方向，不然camera可能会帮你设置一个非0值
+        camera.setDisplayOrientation(0)
+        camera.setPreviewTexture(surface)
         camera.startPreview()
         this.camera = camera
+
+        val cameraInfo = CameraInfo()
+        Camera.getCameraInfo(cameraId, cameraInfo)
+        val isFrontCamera = cameraInfo.facing == CameraInfo.CAMERA_FACING_FRONT
+        val cameraOrientation = cameraInfo.orientation
+        val displayRotation = requireContext().getDisplayRotation()
+        val cameraRotate = getCameraRotate(isFrontCamera, cameraOrientation, displayRotation)
+        val previewMatrix = getCameraMatrix(cameraRotate, cameraSize, displaySize, scaleType)
+        textureView.setTransform(previewMatrix)
     }
 
-
-    private fun stopCamera() {
+    private fun closeCamera() {
+        camera?.setPreviewCallback(null)
         camera?.stopPreview()
         camera?.release()
         camera = null
@@ -194,13 +251,12 @@ class Camera1Fragment : Fragment() {
     }
 
     private fun switchCamera() {
-        stopCamera()
         facing = if (facing == CameraInfo.CAMERA_FACING_BACK) {
             CameraInfo.CAMERA_FACING_FRONT
         } else {
             CameraInfo.CAMERA_FACING_BACK
         }
-        startCamera(cameraId, binding.surfaceView.holder, width, height)
+        reopenCamera()
     }
 
     private fun startRecord() {

@@ -28,6 +28,7 @@ import androidx.appcompat.app.AppCompatActivity.CAMERA_SERVICE
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.pujh.camera.databinding.FragmentCamera2Binding
+import com.pujh.camera.util.getDisplayRotation
 
 /**
  * Camera1录制视频可以使用 MediaRecorder.setCamera(Camera) 方法，
