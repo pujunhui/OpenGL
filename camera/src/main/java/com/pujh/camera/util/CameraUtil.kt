@@ -69,21 +69,23 @@ enum class ScaleType {
 }
 
 /**
- * Camera1设置TextureView预览时，默认给Canvas设置了全铺满的Matrix，我们无法更改，
- * 并且画布大小等于Surface大小，只能修改Surface的Matrix，来实现画面的缩放、旋转、翻转等效果
+ * Camera1+TextureView进行预览时，默认采用全铺满的方式进行显示，
+ * 并且提供Camera#setDisplayOrientation方法设置画面旋转角度，但仍需要我们自己处理缩放、位移、镜像等操作。
+ * 而此方法，可以获得一个Matrix，传入TextureView#setTransform方法中，一次完成旋转、缩放、位移、镜像等操作。
+ * 注意：必须手动设置camera.setDisplayOrientation(0)。
  *
  * 矩阵计算思路:
  *   1、同时旋转camera帧和surface
  *   2、计算surface的宽高缩放比，让旋转后的camera帧满足显示要求
  *   3、通过display裁剪surface区域
  *
- * 其中涉及一下变量：
- * contentSize，camera旋转后的尺寸
+ * 其中涉及的变量：
+ * contentSize，camera frame旋转后的尺寸
  * surfaceSize，display旋转后的尺寸，最终可绘制的区域是surface和display交集
  *
  * @param cameraRotate camera sensor角度
  * @param cameraSize camera预览尺寸（camera数据流大小）
- * @param displaySize 显示控件大小
+ * @param displaySize 显示控件（TextureView）大小
  * @param scaleType 缩放方式
  * @param mirror 对显示画面进行额外水平镜像，一般默认false即可。如果是前置摄像头，并且不希望镜像显示，则可设置为true
  */
@@ -134,7 +136,7 @@ fun getCameraMatrix(
             } else {
                 displaySize.height / contentHeight.toFloat()
             }
-            //求得共同缩放比后，再乘各自的反形变缩放比，避免变形
+            //求得共同缩放比后，再乘各自的反形变缩放比，从而避免变形
             scaleX = scale * contentWidth / surfaceWidth.toFloat()
             scaleY = scale * contentHeight / surfaceHeight.toFloat()
         }
@@ -184,4 +186,17 @@ fun getCameraRotate(
         result = (cameraOrientation - displayRotation + 360) % 360
     }
     return result
+}
+
+/**
+ * @param isFrontCamera 是否是前置摄像头，如果是则需要水平镜像画面
+ * @param cameraOrientation camera sensor角度
+ * @param displayRotation 显示方向
+ */
+fun getCamera2Rotate(
+    isFrontCamera: Boolean,
+    cameraOrientation: Int,
+    displayRotation: Int
+): Int {
+    return (360 - displayRotation)
 }

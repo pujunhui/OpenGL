@@ -20,7 +20,6 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
-import androidx.camera.core.impl.CameraInfoInternal
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -39,7 +38,7 @@ class CameraXFragment : Fragment() {
     private var imageCapture: ImageCapture? = null
     private var cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
-//        CameraSelector.Builder().addCameraFilter { cameraInfos ->
+    //        CameraSelector.Builder().addCameraFilter { cameraInfos ->
 //        cameraInfos.filter { cameraInfo ->
 //            val info = cameraInfo as CameraInfoInternal
 //            info.cameraId == "121"

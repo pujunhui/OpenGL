@@ -32,6 +32,22 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
+/**
+ * camera1 默认全填充Surface
+ *
+ * 如果没有调用camera.setDisplayOrientation，camera会根据sensor方向以及是否是前置摄像头，计算出一个默认值。
+ * 计算规则如下：
+ *      sensorOrientation=0, displayOrientation=0,
+ *      sensorOrientation=90, 如果是前置摄像头，displayOrientation=180，否则displayOrientation=0
+ *      sensorOrientation=180, displayOrientation=180,
+ *      sensorOrientation=270, 如果不是前置摄像头，displayOrientation=180，否则displayOrientation=0
+ *
+ * http://aospxref.com/android-12.0.0_r3/xref/frameworks/base/core/jni/android_hardware_Camera.cpp#627
+ *
+ * 这个计算规则十分难以理解，所以一般不会使用默认的displayOrientation。
+ * 并且预览显示，不仅要考虑画面方向，还有考虑宽高缩放比、前置摄像头是否水平镜像等情况。
+ * 所以我们可以直接设置displayOrientation=0，并将所有的旋转、缩放、镜像等操作放到一个Matrix中，并设置给TextureView。
+ */
 class Camera1Fragment : Fragment() {
     private lateinit var binding: FragmentCamera1Binding
 
@@ -42,9 +58,10 @@ class Camera1Fragment : Fragment() {
     private val cameraId: Int
         get() = getCameraId(facing)
     private var cameraSize: Size = Size(1920, 1080)
+//    private var cameraSize: Size = Size(2592, 1944)
     private var scaleType: ScaleType = ScaleType.CENTER_CROP
 
-    private val surface: SurfaceTexture?
+    private val texture: SurfaceTexture?
         get() = textureView.takeIf { it.isAvailable }?.surfaceTexture
 
     private val displaySize: Size?
@@ -90,6 +107,7 @@ class Camera1Fragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        textureView = binding.textureView
         binding.imageCaptureBtn.setOnClickListener {
             takePhoto()
         }
@@ -97,7 +115,6 @@ class Camera1Fragment : Fragment() {
             switchCamera()
         }
         orientationEventListener.enable()
-        textureView = binding.textureView
     }
 
     override fun onDestroyView() {
@@ -136,15 +153,15 @@ class Camera1Fragment : Fragment() {
 
     private fun reopenCamera() {
         closeCamera()
-        val surface = this.surface ?: return
+        val texture = this.texture ?: return
         val displaySize = this.displaySize ?: return
-        openCamera(cameraId, cameraSize, surface, displaySize, scaleType)
+        openCamera(cameraId, cameraSize, texture, displaySize, scaleType)
     }
 
     private fun openCamera(
         cameraId: Int,
         cameraSize: Size,
-        surface: SurfaceTexture,
+        texture: SurfaceTexture,
         displaySize: Size,
         scaleType: ScaleType
     ) {
@@ -197,7 +214,7 @@ class Camera1Fragment : Fragment() {
 
         //一定要设置方向，不然camera可能会帮你设置一个非0值
         camera.setDisplayOrientation(0)
-        camera.setPreviewTexture(surface)
+        camera.setPreviewTexture(texture)
         camera.startPreview()
         this.camera = camera
 
@@ -216,6 +233,15 @@ class Camera1Fragment : Fragment() {
         camera?.stopPreview()
         camera?.release()
         camera = null
+    }
+
+    private fun switchCamera() {
+        facing = if (facing == CameraInfo.CAMERA_FACING_BACK) {
+            CameraInfo.CAMERA_FACING_FRONT
+        } else {
+            CameraInfo.CAMERA_FACING_BACK
+        }
+        reopenCamera()
     }
 
     private fun takePhoto() {
@@ -248,15 +274,6 @@ class Camera1Fragment : Fragment() {
             }
             camera.startPreview()
         }
-    }
-
-    private fun switchCamera() {
-        facing = if (facing == CameraInfo.CAMERA_FACING_BACK) {
-            CameraInfo.CAMERA_FACING_FRONT
-        } else {
-            CameraInfo.CAMERA_FACING_BACK
-        }
-        reopenCamera()
     }
 
     private fun startRecord() {

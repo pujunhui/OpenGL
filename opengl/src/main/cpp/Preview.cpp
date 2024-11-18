@@ -6,9 +6,9 @@
 
 #include <GLES3/gl3ext.h>
 #include <EGL/egl.h>
-#include <GLES2/gl2ext.h>
 
 #include <malloc.h>
+#include <GLES2/gl2ext.h>
 #include "util/GLUtil.h"
 #include "util/AAssetUtil.h"
 #include "util/LogUtil.h"

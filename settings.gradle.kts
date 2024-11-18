@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "OpenGL"
 include(":opengl")
 include(":camera")
+include(":opengl2")

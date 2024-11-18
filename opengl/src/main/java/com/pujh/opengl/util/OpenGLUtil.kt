@@ -37,6 +37,7 @@ import android.opengl.GLUtils
 import android.util.Log
 
 private const val TAG = "OpenGL-TAG"
+
 fun loadShader(type: Int, shaderSrc: String): Int {
     val shader = glCreateShader(type)
     if (shader == 0) {

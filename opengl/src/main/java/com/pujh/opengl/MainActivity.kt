@@ -2,8 +2,6 @@ package com.pujh.opengl
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.pujh.opengl.basic.BasicFragment
-import com.pujh.opengl.camera.CameraXFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -12,7 +10,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         supportFragmentManager.beginTransaction()
-            .replace(R.id.container, BasicFragment())
+            .replace(R.id.container, OpenGLFragment())
             .commit()
     }
 }
