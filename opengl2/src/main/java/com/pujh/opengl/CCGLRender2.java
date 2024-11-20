@@ -17,20 +17,17 @@ public class CCGLRender2 implements GLSurfaceView.Renderer {
 
     private final Context m_glContex;
 
-    private native void ndkInitGL();
+    private native void ndkInitGL(AssetManager assetManager);
 
     private native void ndkPaintGL();
 
     private native void ndkResizeGL(int width, int height);
 
-    private native int ndkReadResourceFile(AssetManager assetManager, String fileName);
-
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         AssetManager assetManager = m_glContex.getAssets();
-        ndkInitGL();
-        ndkReadResourceFile(assetManager, "rabit.png");
+        ndkInitGL(assetManager);
     }
 
     @Override

@@ -5,17 +5,6 @@
 extern "C" {
 #endif
 
-
-struct CCFloat7 {
-    float x;
-    float y;
-    float z;
-    float r;
-    float g;
-    float b;
-    float a;
-};
-
 struct CCFloat3 {
     float x;
     float y;
@@ -35,6 +24,16 @@ struct CCFloat5 {
     float z;
     float u;
     float v;
+};
+
+struct CCFloat7 {
+    float x;
+    float y;
+    float z;
+    float r;
+    float g;
+    float b;
+    float a;
 };
 
 #ifdef __cplusplus

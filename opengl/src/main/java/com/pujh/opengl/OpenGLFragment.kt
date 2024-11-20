@@ -26,8 +26,7 @@ class OpenGLFragment : Fragment() {
         val glSurfaceView = view.findViewById<GLSurfaceView>(R.id.gl_surface_view)
         glSurfaceView.setEGLContextClientVersion(1)
 //        glSurfaceView.setRenderer(CCGLRender())
-//        glSurfaceView.setRenderer(CCGLRender2(requireContext()))
-        glSurfaceView.setRenderer(CCGLRender3(requireContext()))
+        glSurfaceView.setRenderer(CCGLRender2(requireContext()))
     }
 
 }

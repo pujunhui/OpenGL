@@ -34,6 +34,7 @@ add_library(${CMAKE_PROJECT_NAME} SHARED
         CCNDKGLESRender.cpp
         CCGLTexture.cpp
         CCImage.cpp
+        util/CCGLUtil.cpp
 )
 
 # Specifies libraries CMake should link to your target library. You
